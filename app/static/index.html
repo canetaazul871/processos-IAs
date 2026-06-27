@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assistente de Desembargador</title>
+  <style>
+    :root {
+      --bg: #f5f3ee;
+      --panel: #ffffff;
+      --ink: #1f2a37;
+      --muted: #6b7280;
+      --accent: #7c2d12;
+      --accent-soft: #fbeae3;
+      --border: #e3ddd2;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.5;
+    }
+    header {
+      background: var(--accent);
+      color: #fff;
+      padding: 20px 28px;
+    }
+    header h1 { margin: 0; font-size: 1.5rem; }
+    header p { margin: 4px 0 0; opacity: .85; font-size: .9rem; }
+    .wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 1280px;
+      margin: 24px auto;
+      padding: 0 20px;
+    }
+    @media (max-width: 920px) { .wrap { grid-template-columns: 1fr; } }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    h2 { font-size: 1.1rem; margin-top: 0; }
+    label { display: block; font-size: .82rem; color: var(--muted); margin: 14px 0 4px; font-family: system-ui, sans-serif; }
+    input, textarea, select {
+      width: 100%;
+      padding: 9px 11px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: system-ui, sans-serif;
+      font-size: .9rem;
+      background: #fff;
+      resize: vertical;
+    }
+    textarea { min-height: 70px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    button {
+      margin-top: 18px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 12px 20px;
+      font-size: 1rem;
+      border-radius: 7px;
+      cursor: pointer;
+      font-family: system-ui, sans-serif;
+      width: 100%;
+    }
+    button:disabled { opacity: .55; cursor: progress; }
+    .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+    .toolbar button { margin-top: 0; width: auto; padding: 7px 14px; font-size: .82rem; background: #efe9df; color: var(--ink); }
+    #saida {
+      white-space: pre-wrap;
+      font-family: Georgia, serif;
+      font-size: .95rem;
+      min-height: 420px;
+      background: #fbfaf7;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .aviso { font-family: system-ui, sans-serif; font-size: .78rem; color: var(--muted); background: var(--accent-soft); border-radius: 6px; padding: 10px 12px; margin-top: 12px; }
+    .status { font-family: system-ui, sans-serif; font-size: .8rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Assistente de Desembargador</h1>
+    <p>Geração de minutas de voto e ementa com apoio de IA — sempre sujeitas à revisão do gabinete.</p>
+  </header>
+
+  <div class="wrap">
+    <section class="panel">
+      <h2>Dados do caso</h2>
+      <form id="form">
+        <div class="row">
+          <div>
+            <label for="tipo_recurso">Tipo de recurso / classe</label>
+            <input id="tipo_recurso" placeholder="Ex.: Apelação Cível" />
+          </div>
+          <div>
+            <label for="numero_processo">Nº do processo</label>
+            <input id="numero_processo" placeholder="0000000-00.0000.0.00.0000" />
+          </div>
+        </div>
+
+        <label for="partes">Partes (recorrente / recorrido)</label>
+        <input id="partes" placeholder="Recorrente: ... / Recorrido: ..." />
+
+        <label for="relatorio">Relatório / resumo dos fatos e do processo</label>
+        <textarea id="relatorio" placeholder="Síntese dos fatos, da decisão de origem e do andamento processual."></textarea>
+
+        <label for="decisao_recorrida">Decisão recorrida (sentença/acórdão de origem)</label>
+        <textarea id="decisao_recorrida" placeholder="Dispositivo e fundamentos da decisão recorrida."></textarea>
+
+        <label for="razoes_recurso">Razões do recurso (pedidos e fundamentos)</label>
+        <textarea id="razoes_recurso" placeholder="O que o recorrente pede e com quais fundamentos."></textarea>
+
+        <label for="contrarrazoes">Contrarrazões</label>
+        <textarea id="contrarrazoes" placeholder="Argumentos da parte contrária, se houver."></textarea>
+
+        <label for="posicao_gabinete">Orientação do gabinete sobre o resultado</label>
+        <textarea id="posicao_gabinete" placeholder="Ex.: dar provimento parcial para reduzir os danos morais. (Opcional — se vazio, o assistente sugere a solução mais consistente.)"></textarea>
+
+        <label for="questoes_juridicas">Questões jurídicas a enfrentar</label>
+        <textarea id="questoes_juridicas" placeholder="Pontos controvertidos de direito a serem decididos."></textarea>
+
+        <label for="observacoes">Observações adicionais</label>
+        <textarea id="observacoes" placeholder="Qualquer instrução adicional ao assistente."></textarea>
+
+        <button type="submit" id="btn">Gerar minuta de voto</button>
+      </form>
+      <div class="aviso">
+        ⚖️ A minuta é gerada por IA e pode conter imprecisões. Confira dispositivos
+        legais, precedentes e dados dos autos antes de qualquer uso oficial.
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="toolbar">
+        <h2 style="flex:1; margin:0;">Minuta gerada</h2>
+        <button type="button" id="copiar">Copiar</button>
+        <button type="button" id="limpar">Limpar</button>
+        <span class="status" id="status"></span>
+      </div>
+      <div id="saida">A minuta aparecerá aqui…</div>
+    </section>
+  </div>
+
+  <script>
+    const form = document.getElementById("form");
+    const btn = document.getElementById("btn");
+    const saida = document.getElementById("saida");
+    const status = document.getElementById("status");
+
+    const campos = [
+      "tipo_recurso","numero_processo","partes","relatorio","decisao_recorrida",
+      "razoes_recurso","contrarrazoes","posicao_gabinete","questoes_juridicas","observacoes"
+    ];
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const payload = {};
+      campos.forEach(c => payload[c] = document.getElementById(c).value);
+
+      btn.disabled = true;
+      btn.textContent = "Gerando…";
+      saida.textContent = "";
+      status.textContent = "conectando…";
+
+      try {
+        const resp = await fetch("/api/minutar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!resp.ok && resp.headers.get("content-type")?.includes("application/json")) {
+          const err = await resp.json();
+          saida.textContent = "Erro: " + (err.detail || JSON.stringify(err));
+          return;
+        }
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        status.textContent = "redigindo…";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          saida.textContent += decoder.decode(value, { stream: true });
+          saida.scrollTop = saida.scrollHeight;
+        }
+        status.textContent = "concluído";
+      } catch (err) {
+        saida.textContent = "Falha na requisição: " + err.message;
+        status.textContent = "erro";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Gerar minuta de voto";
+      }
+    });
+
+    document.getElementById("copiar").addEventListener("click", () => {
+      navigator.clipboard.writeText(saida.textContent);
+      status.textContent = "copiado";
+    });
+    document.getElementById("limpar").addEventListener("click", () => {
+      saida.textContent = "A minuta aparecerá aqui…";
+      status.textContent = "";
+    });
+  </script>
+</body>
+</html>
