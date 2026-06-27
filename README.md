@@ -12,8 +12,13 @@ usando a API da Claude (Anthropic).
 
 - Formulário com os dados do caso (relatório, decisão recorrida, razões do
   recurso, contrarrazões, orientação do gabinete, questões jurídicas).
-- Geração da minuta em **streaming** (o texto aparece conforme é redigido),
-  com seções de relatório, fundamentação, dispositivo e ementa.
+- Quatro entregáveis selecionáveis, gerados em **streaming** (o texto aparece
+  conforme é redigido):
+  - **Análise FIRAC** do processo — Fatos, Questões (_Issues_), Regra (_Rule_),
+    Aplicação (_Analysis_) e Conclusão.
+  - **Relatório** do acórdão.
+  - **Voto** (fundamentação: admissibilidade e mérito; dispositivo).
+  - **Ementa** no padrão dos tribunais.
 - Marcadores entre colchetes para lacunas que dependem dos autos ou de
   precedentes a serem conferidos (o modelo é instruído a **não inventar**
   citações, súmulas ou números de processos).

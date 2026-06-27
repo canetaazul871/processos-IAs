@@ -85,6 +85,11 @@
     }
     .aviso { font-family: system-ui, sans-serif; font-size: .78rem; color: var(--muted); background: var(--accent-soft); border-radius: 6px; padding: 10px 12px; margin-top: 12px; }
     .status { font-family: system-ui, sans-serif; font-size: .8rem; color: var(--muted); }
+    fieldset { border: 1px solid var(--border); border-radius: 8px; margin: 6px 0 4px; padding: 10px 14px; }
+    fieldset legend { font-family: system-ui, sans-serif; font-size: .82rem; color: var(--muted); padding: 0 6px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 14px; font-family: system-ui, sans-serif; font-size: .88rem; }
+    .chips label { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--ink); cursor: pointer; }
+    .chips input { width: auto; }
   </style>
 </head>
 <body>
@@ -97,6 +102,16 @@
     <section class="panel">
       <h2>Dados do caso</h2>
       <form id="form">
+        <fieldset>
+          <legend>Entregáveis a gerar</legend>
+          <div class="chips">
+            <label><input type="checkbox" class="entregavel" value="firac" checked /> Análise FIRAC</label>
+            <label><input type="checkbox" class="entregavel" value="relatorio" checked /> Relatório</label>
+            <label><input type="checkbox" class="entregavel" value="voto" checked /> Voto</label>
+            <label><input type="checkbox" class="entregavel" value="ementa" checked /> Ementa</label>
+          </div>
+        </fieldset>
+
         <div class="row">
           <div>
             <label for="tipo_recurso">Tipo de recurso / classe</label>
@@ -166,6 +181,14 @@
       e.preventDefault();
       const payload = {};
       campos.forEach(c => payload[c] = document.getElementById(c).value);
+      payload.entregaveis = Array.from(
+        document.querySelectorAll(".entregavel:checked")
+      ).map(cb => cb.value);
+
+      if (payload.entregaveis.length === 0) {
+        alert("Selecione ao menos um entregável (FIRAC, relatório, voto ou ementa).");
+        return;
+      }
 
       btn.disabled = true;
       btn.textContent = "Gerando…";

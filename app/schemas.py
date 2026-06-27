@@ -2,10 +2,18 @@
 
 from pydantic import BaseModel, Field
 
+# Entregáveis que o assistente pode produzir.
+ENTREGAVEIS_VALIDOS = ("firac", "relatorio", "voto", "ementa")
+ENTREGAVEIS_PADRAO = list(ENTREGAVEIS_VALIDOS)
+
 
 class MinutaRequest(BaseModel):
     """Dados do caso para geração da minuta de voto."""
 
+    entregaveis: list[str] = Field(
+        default_factory=lambda: list(ENTREGAVEIS_PADRAO),
+        description="Seções a produzir: firac, relatorio, voto, ementa.",
+    )
     tipo_recurso: str = Field(
         default="",
         description="Tipo de recurso ou classe processual (ex.: Apelação Cível).",
@@ -39,3 +47,9 @@ class MinutaRequest(BaseModel):
             or (self.razoes_recurso or "").strip()
             or (self.decisao_recorrida or "").strip()
         )
+
+    def entregaveis_selecionados(self) -> list[str]:
+        """Entregáveis válidos solicitados, preservando a ordem canônica."""
+        pedidos = {e.strip().lower() for e in self.entregaveis}
+        selecionados = [e for e in ENTREGAVEIS_VALIDOS if e in pedidos]
+        return selecionados or list(ENTREGAVEIS_PADRAO)
