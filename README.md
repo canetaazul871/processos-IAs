@@ -73,6 +73,25 @@ usando a API da Claude (Anthropic).
 
 5. Acesse <http://localhost:8000>.
 
+## Testes e CI
+
+Rodar localmente:
+
+```bash
+pip install -r requirements-dev.txt
+ruff check app tests   # lint
+pytest -q              # testes (não exigem chave de API nem rede)
+```
+
+O GitHub Actions (`.github/workflows/ci.yml`) roda lint + testes:
+
+- **a cada push e pull request** (ativo imediatamente);
+- **todo dia** (build noturno agendado, às 03:17 UTC).
+
+> O job agendado (`schedule`) do GitHub Actions só passa a disparar depois que o
+> workflow estiver na branch padrão (`main`) — isto é, após o merge deste PR. A
+> CI em push/PR já funciona na branch de trabalho.
+
 ## Configuração (.env)
 
 | Variável             | Padrão            | Descrição                                      |
