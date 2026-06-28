@@ -73,6 +73,32 @@ usando a API da Claude (Anthropic).
 
 5. Acesse <http://localhost:8000>.
 
+## Rodar pelo GitHub (Codespaces)
+
+> O GitHub **não hospeda** um servidor backend (o Pages só serve sites
+> estáticos). A forma nativa de **executar** este app pelo GitHub é o
+> **Codespaces** — uma máquina na nuvem que roda o app e expõe uma URL.
+
+1. No repositório: botão **Code → Codespaces → Create codespace**. O ambiente é
+   montado automaticamente (`.devcontainer/devcontainer.json` instala as
+   dependências).
+2. Configure a chave da API como **segredo do Codespaces**: repositório →
+   **Settings → Secrets and variables → Codespaces → New repository secret**,
+   nome `ANTHROPIC_API_KEY`. Ela fica disponível como variável de ambiente.
+3. No terminal do Codespace, rode:
+
+   ```bash
+   uvicorn app.main:app --host 0.0.0.0 --port 8000
+   ```
+
+4. O GitHub abre/encaminha a porta 8000 com uma URL clicável. Para liberar o
+   acesso a outras pessoas, marque a porta como **Public** na aba *Ports*.
+
+> ⚠️ O Codespaces é um ambiente de **desenvolvimento/demonstração**: ele
+> **suspende após inatividade** e consome horas da sua cota — não é um servidor
+> 24/7. Para uso permanente do gabinete, prefira um deploy com Docker/servidor
+> próprio.
+
 ## Testes e CI
 
 Rodar localmente:
