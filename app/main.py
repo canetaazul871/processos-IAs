@@ -8,7 +8,8 @@ from fastapi.responses import FileResponse, StreamingResponse
 from app import __version__
 from app.claude_client import gerar_minuta_stream
 from app.config import settings
-from app.schemas import MinutaRequest
+from app.jurisprudencia import consultar_datajud, pesquisar_julgados_stream
+from app.schemas import DataJudRequest, JurisprudenciaRequest, MinutaRequest
 
 app = FastAPI(
     title="Assistente de Desembargador",
@@ -67,3 +68,30 @@ def minutar(req: MinutaRequest) -> StreamingResponse:
         gerar_minuta_stream(req),
         media_type="text/plain; charset=utf-8",
     )
+
+
+@app.post("/api/jurisprudencia")
+def jurisprudencia(req: JurisprudenciaRequest) -> StreamingResponse:
+    """Pesquisa jurisprudência em fontes oficiais (streaming, text/plain)."""
+    if not settings.anthropic_api_key:
+        return StreamingResponse(
+            iter(["ERRO: ANTHROPIC_API_KEY não configurada."]),
+            media_type="text/plain; charset=utf-8",
+            status_code=503,
+        )
+    if not req.consulta.strip():
+        return StreamingResponse(
+            iter(["ERRO: informe a tese ou o assunto a pesquisar."]),
+            media_type="text/plain; charset=utf-8",
+            status_code=400,
+        )
+    return StreamingResponse(
+        pesquisar_julgados_stream(req.consulta, req.tribunal or None),
+        media_type="text/plain; charset=utf-8",
+    )
+
+
+@app.post("/api/datajud")
+def datajud(req: DataJudRequest) -> dict:
+    """Consulta processual à API Pública do DataJud (CNJ)."""
+    return consultar_datajud(req.numero_processo, req.tribunal)

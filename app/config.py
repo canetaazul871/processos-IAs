@@ -11,6 +11,12 @@ class Settings(BaseSettings):
     model_effort: str = "high"
     max_output_tokens: int = 32000
 
+    # Chave pública da API Pública do DataJud (CNJ). Não é segredo: o CNJ a
+    # publica para acesso aberto. Pode ser sobrescrita por variável de ambiente.
+    datajud_api_key: str = (
+        "cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw=="
+    )
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

@@ -39,6 +39,10 @@ class MinutaRequest(BaseModel):
         default="", description="Questões jurídicas a enfrentar."
     )
     observacoes: str = Field(default="", description="Observações adicionais.")
+    pesquisar_jurisprudencia: bool = Field(
+        default=False,
+        description="Se True, pesquisa julgados oficiais e incorpora à minuta.",
+    )
 
     def tem_conteudo_minimo(self) -> bool:
         """Verifica se há informação suficiente para gerar a minuta."""
@@ -53,3 +57,27 @@ class MinutaRequest(BaseModel):
         pedidos = {e.strip().lower() for e in self.entregaveis}
         selecionados = [e for e in ENTREGAVEIS_VALIDOS if e in pedidos]
         return selecionados or list(ENTREGAVEIS_PADRAO)
+
+    def consulta_jurisprudencia(self) -> str:
+        """Monta uma consulta de jurisprudência a partir dos dados do caso."""
+        base = (self.questoes_juridicas or "").strip()
+        if not base:
+            base = (self.razoes_recurso or "").strip()
+        contexto = " ".join(
+            p for p in [self.tipo_recurso.strip(), base] if p
+        ).strip()
+        return contexto
+
+
+class JurisprudenciaRequest(BaseModel):
+    """Pesquisa avulsa de jurisprudência em fontes oficiais."""
+
+    consulta: str = Field(..., description="Tese, assunto ou questão a pesquisar.")
+    tribunal: str = Field(default="", description="Tribunal preferencial (opcional).")
+
+
+class DataJudRequest(BaseModel):
+    """Consulta processual à API Pública do DataJud (CNJ)."""
+
+    numero_processo: str = Field(..., description="Número CNJ (20 dígitos).")
+    tribunal: str = Field(..., description="Alias do tribunal, ex.: tjsp, stj.")

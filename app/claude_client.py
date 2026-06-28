@@ -5,11 +5,42 @@ from collections.abc import Iterator
 import anthropic
 
 from app.config import settings
+from app.jurisprudencia import pesquisar_julgados
 from app.prompts import SYSTEM_PROMPT, montar_prompt_usuario
 from app.schemas import MinutaRequest
 
 # Cliente único; resolve a credencial a partir de ANTHROPIC_API_KEY no ambiente.
 _client = anthropic.Anthropic(api_key=settings.anthropic_api_key or None)
+
+
+def _bloco_jurisprudencia(req: MinutaRequest) -> tuple[str, str]:
+    """Pesquisa julgados oficiais para o caso.
+
+    Retorna (texto_para_exibir, bloco_para_o_prompt). Em caso de falha ou
+    consulta vazia, retorna strings vazias para não interromper a geração.
+    """
+    consulta = req.consulta_jurisprudencia()
+    if not consulta:
+        return "", ""
+    try:
+        resultado = pesquisar_julgados(consulta, req.tipo_recurso or None).strip()
+    except Exception as exc:  # busca é best-effort; não pode derrubar a minuta
+        return f"\n[Aviso: falha na pesquisa de jurisprudência: {exc}]\n", ""
+    if not resultado:
+        return "", ""
+    exibir = (
+        "## JURISPRUDÊNCIA PESQUISADA (fontes oficiais)\n\n"
+        f"{resultado}\n\n"
+        "---\n\n"
+    )
+    bloco_prompt = (
+        "\n\n=== JURISPRUDÊNCIA PESQUISADA EM FONTES OFICIAIS ===\n"
+        "Use APENAS os julgados abaixo como precedentes citáveis. Cite-os pelo "
+        "tribunal, número e link indicados; não acrescente outros precedentes "
+        "que não constem desta lista.\n\n"
+        f"{resultado}\n"
+    )
+    return exibir, bloco_prompt
 
 
 def gerar_minuta_stream(req: MinutaRequest) -> Iterator[str]:
@@ -19,6 +50,13 @@ def gerar_minuta_stream(req: MinutaRequest) -> Iterator[str]:
     recomendado para saídas longas (evita timeouts de requisição).
     """
     prompt_usuario = montar_prompt_usuario(req)
+
+    if req.pesquisar_jurisprudencia:
+        yield "🔎 Pesquisando jurisprudência em fontes oficiais…\n\n"
+        exibir, bloco_prompt = _bloco_jurisprudencia(req)
+        if exibir:
+            yield exibir
+        prompt_usuario += bloco_prompt
 
     with _client.messages.stream(
         model=settings.anthropic_model,

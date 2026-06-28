@@ -147,6 +147,10 @@
         <label for="observacoes">Observações adicionais</label>
         <textarea id="observacoes" placeholder="Qualquer instrução adicional ao assistente."></textarea>
 
+        <div class="chips" style="margin-top:14px;">
+          <label><input type="checkbox" id="pesquisar_jurisprudencia" /> 🔎 Pesquisar jurisprudência oficial e incorporar à fundamentação</label>
+        </div>
+
         <button type="submit" id="btn">Gerar minuta de voto</button>
       </form>
       <div class="aviso">
@@ -163,6 +167,49 @@
         <span class="status" id="status"></span>
       </div>
       <div id="saida">A minuta aparecerá aqui…</div>
+    </section>
+  </div>
+
+  <div class="wrap" style="margin-top:0;">
+    <section class="panel">
+      <h2>Pesquisa de jurisprudência (fontes oficiais)</h2>
+      <p class="status">Fontes: tribunais oficiais (.jus.br, incl. STF, STJ, TJPA), legislação (Planalto) e Jusbrasil (complementar). Os julgados retornam com link da fonte.</p>
+      <label for="consulta_juris">Tese, assunto ou questão jurídica</label>
+      <textarea id="consulta_juris" placeholder="Ex.: dano moral por inscrição indevida em cadastro de inadimplentes — quantum e súmulas aplicáveis."></textarea>
+      <label for="tribunal_juris">Tribunal preferencial (opcional)</label>
+      <input id="tribunal_juris" placeholder="Ex.: STJ, TJSP" />
+      <button type="button" id="btn_juris">Pesquisar julgados</button>
+      <div id="saida_juris" style="white-space:pre-wrap;font-family:Georgia,serif;font-size:.92rem;margin-top:14px;background:#fbfaf7;border:1px solid var(--border);border-radius:8px;padding:16px;min-height:120px;">Os julgados aparecerão aqui…</div>
+    </section>
+
+    <section class="panel">
+      <h2>Consulta processual — DataJud (CNJ)</h2>
+      <p class="status">Dados processuais oficiais por número CNJ. O STF não integra o DataJud.</p>
+      <label for="numero_datajud">Número do processo (20 dígitos / padrão CNJ)</label>
+      <input id="numero_datajud" placeholder="0000000-00.0000.0.00.0000" />
+      <label for="tribunal_datajud">Tribunal</label>
+      <select id="tribunal_datajud">
+        <option value="">Selecione…</option>
+        <optgroup label="Superiores">
+          <option value="stj">STJ</option><option value="tst">TST</option>
+          <option value="tse">TSE</option><option value="stm">STM</option>
+        </optgroup>
+        <optgroup label="Justiça Federal">
+          <option value="trf1">TRF1</option><option value="trf2">TRF2</option>
+          <option value="trf3">TRF3</option><option value="trf4">TRF4</option>
+          <option value="trf5">TRF5</option><option value="trf6">TRF6</option>
+        </optgroup>
+        <optgroup label="Tribunais de Justiça">
+          <option value="tjsp">TJSP</option><option value="tjrj">TJRJ</option>
+          <option value="tjmg">TJMG</option><option value="tjrs">TJRS</option>
+          <option value="tjpr">TJPR</option><option value="tjsc">TJSC</option>
+          <option value="tjba">TJBA</option><option value="tjdft">TJDFT</option>
+          <option value="tjce">TJCE</option><option value="tjpe">TJPE</option>
+          <option value="tjgo">TJGO</option><option value="tjpa">TJPA</option>
+        </optgroup>
+      </select>
+      <button type="button" id="btn_datajud">Consultar DataJud</button>
+      <div id="saida_datajud" style="white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:.82rem;margin-top:14px;background:#fbfaf7;border:1px solid var(--border);border-radius:8px;padding:16px;min-height:120px;overflow:auto;">O resultado aparecerá aqui…</div>
     </section>
   </div>
 
@@ -184,6 +231,8 @@
       payload.entregaveis = Array.from(
         document.querySelectorAll(".entregavel:checked")
       ).map(cb => cb.value);
+      payload.pesquisar_jurisprudencia =
+        document.getElementById("pesquisar_jurisprudencia").checked;
 
       if (payload.entregaveis.length === 0) {
         alert("Selecione ao menos um entregável (FIRAC, relatório, voto ou ementa).");
@@ -234,6 +283,55 @@
     document.getElementById("limpar").addEventListener("click", () => {
       saida.textContent = "A minuta aparecerá aqui…";
       status.textContent = "";
+    });
+
+    // --- Pesquisa de jurisprudência (busca web em fontes oficiais) ---
+    const btnJuris = document.getElementById("btn_juris");
+    const saidaJuris = document.getElementById("saida_juris");
+    btnJuris.addEventListener("click", async () => {
+      const consulta = document.getElementById("consulta_juris").value;
+      if (!consulta.trim()) { alert("Informe a tese ou o assunto a pesquisar."); return; }
+      btnJuris.disabled = true; btnJuris.textContent = "Pesquisando…"; saidaJuris.textContent = "";
+      try {
+        const resp = await fetch("/api/jurisprudencia", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ consulta, tribunal: document.getElementById("tribunal_juris").value }),
+        });
+        const reader = resp.body.getReader();
+        const dec = new TextDecoder();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          saidaJuris.textContent += dec.decode(value, { stream: true });
+          saidaJuris.scrollTop = saidaJuris.scrollHeight;
+        }
+      } catch (err) {
+        saidaJuris.textContent = "Falha na pesquisa: " + err.message;
+      } finally {
+        btnJuris.disabled = false; btnJuris.textContent = "Pesquisar julgados";
+      }
+    });
+
+    // --- Consulta DataJud (CNJ) ---
+    const btnData = document.getElementById("btn_datajud");
+    const saidaData = document.getElementById("saida_datajud");
+    btnData.addEventListener("click", async () => {
+      const numero = document.getElementById("numero_datajud").value;
+      const tribunal = document.getElementById("tribunal_datajud").value;
+      if (!numero.trim() || !tribunal) { alert("Informe o número do processo e o tribunal."); return; }
+      btnData.disabled = true; btnData.textContent = "Consultando…"; saidaData.textContent = "consultando o CNJ…";
+      try {
+        const resp = await fetch("/api/datajud", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ numero_processo: numero, tribunal }),
+        });
+        const data = await resp.json();
+        saidaData.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        saidaData.textContent = "Falha na consulta: " + err.message;
+      } finally {
+        btnData.disabled = false; btnData.textContent = "Consultar DataJud";
+      }
     });
   </script>
 </body>

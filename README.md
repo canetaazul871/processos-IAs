@@ -19,6 +19,13 @@ usando a API da Claude (Anthropic).
   - **Relatório** do acórdão.
   - **Voto** (fundamentação: admissibilidade e mérito; dispositivo).
   - **Ementa** no padrão dos tribunais.
+- **Pesquisa de jurisprudência** integrada:
+  - **Busca em fontes oficiais** — a Claude pesquisa julgados reais e citáveis,
+    restrita a domínios `.jus.br` (STF, STJ, TJPA, demais TJs/TRFs),
+    `planalto.gov.br` (legislação) e `jusbrasil.com.br` (complementar). Pode ser
+    incorporada automaticamente à fundamentação do voto.
+  - **DataJud (CNJ)** — consulta processual oficial por número CNJ via API
+    Pública (não cobre o STF).
 - Marcadores entre colchetes para lacunas que dependem dos autos ou de
   precedentes a serem conferidos (o modelo é instruído a **não inventar**
   citações, súmulas ou números de processos).
@@ -73,7 +80,14 @@ usando a API da Claude (Anthropic).
 - `GET /` — interface web.
 - `GET /api/health` — status e se a chave está configurada.
 - `POST /api/minutar` — gera a minuta (resposta em streaming `text/plain`).
+- `POST /api/jurisprudencia` — pesquisa julgados em fontes oficiais (streaming).
+- `POST /api/datajud` — consulta processual à API Pública do DataJud (CNJ).
 - `GET /docs` — documentação interativa (Swagger).
+
+> **Rede:** a busca em fontes oficiais usa a ferramenta de busca server-side da
+> Anthropic. Já a consulta ao **DataJud** faz requisição direta a
+> `api-publica.datajud.cnj.jus.br` — garanta que a saída para esse host esteja
+> liberada no ambiente onde a aplicação roda.
 
 ## Estrutura
 
@@ -81,7 +95,8 @@ usando a API da Claude (Anthropic).
 app/
 ├── main.py            # rotas FastAPI
 ├── config.py          # configurações (.env)
-├── claude_client.py   # integração com a API da Claude
+├── claude_client.py   # integração com a API da Claude (geração das minutas)
+├── jurisprudencia.py  # busca em fontes oficiais + consulta ao DataJud (CNJ)
 ├── prompts.py         # prompt de sistema + montagem do prompt do caso
 ├── schemas.py         # modelos de entrada
 └── static/index.html  # interface web
@@ -90,6 +105,5 @@ app/
 ## Próximos passos possíveis
 
 - Resumo automático de peças (upload de PDF dos autos).
-- Pesquisa de jurisprudência integrada.
 - Triagem/classificação de processos por matéria e urgência.
 - Exportação da minuta em `.docx`.
