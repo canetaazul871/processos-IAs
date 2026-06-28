@@ -1,0 +1,3 @@
+"""Assistente de Desembargador — pacote da aplicação."""
+
+__version__ = "0.1.0"

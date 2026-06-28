@@ -1,0 +1,6 @@
+[tool.pytest.ini_options]
+# Garante que o pacote `app` seja importável ao rodar `pytest` a partir da raiz
+# (o entrypoint `pytest` não adiciona o diretório atual ao sys.path; `pythonpath`
+# resolve isso de forma independente da forma de invocação).
+pythonpath = ["."]
+testpaths = ["tests"]
