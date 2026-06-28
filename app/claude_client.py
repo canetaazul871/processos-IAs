@@ -1,5 +1,6 @@
 """Integração com a API da Claude (Anthropic) para gerar as minutas."""
 
+import json
 from collections.abc import Iterator
 
 import anthropic
@@ -11,6 +12,33 @@ from app.schemas import MinutaRequest
 
 # Cliente único; resolve a credencial a partir de ANTHROPIC_API_KEY no ambiente.
 _client = anthropic.Anthropic(api_key=settings.anthropic_api_key or None)
+
+
+def gerar_json(
+    system: str,
+    content: str | list,
+    schema: dict,
+    max_tokens: int = 8000,
+) -> dict:
+    """Faz uma chamada com saída estruturada (JSON Schema) e devolve um dict.
+
+    `content` pode ser texto simples ou uma lista de blocos (ex.: documento PDF).
+    Em caso de recusa ou JSON inválido, devolve {'erro': ...}.
+    """
+    resp = _client.messages.create(
+        model=settings.anthropic_model,
+        max_tokens=max_tokens,
+        system=system,
+        output_config={"format": {"type": "json_schema", "schema": schema}},
+        messages=[{"role": "user", "content": content}],
+    )
+    if resp.stop_reason == "refusal":
+        return {"erro": "A solicitação foi recusada pela política de segurança."}
+    texto = next((b.text for b in resp.content if b.type == "text"), "")
+    try:
+        return json.loads(texto)
+    except json.JSONDecodeError:
+        return {"erro": "Não foi possível interpretar a resposta do modelo."}
 
 
 def _bloco_jurisprudencia(req: MinutaRequest) -> tuple[str, str]:

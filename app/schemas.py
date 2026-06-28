@@ -85,6 +85,12 @@ class DataJudRequest(BaseModel):
     tribunal: str = Field(..., description="Alias do tribunal, ex.: tjsp, stj.")
 
 
+class TriagemRequest(BaseModel):
+    """Triagem/classificação de um processo a partir de sua descrição."""
+
+    texto: str = Field(..., description="Descrição ou relatório do processo.")
+
+
 class ExportarDocxRequest(BaseModel):
     """Exportação da minuta para documento Word (.docx)."""
 

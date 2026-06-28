@@ -12,6 +12,8 @@ usando a API da Claude (Anthropic).
 
 - Formulário com os dados do caso (relatório, decisão recorrida, razões do
   recurso, contrarrazões, orientação do gabinete, questões jurídicas).
+- **Importar autos (PDF)** — envia o PDF das peças e o assistente extrai e
+  preenche os campos do caso automaticamente (para revisão).
 - Quatro entregáveis selecionáveis, gerados em **streaming** (o texto aparece
   conforme é redigido):
   - **Análise FIRAC** do processo — Fatos, Questões (_Issues_), Regra (_Rule_),
@@ -26,6 +28,9 @@ usando a API da Claude (Anthropic).
     incorporada automaticamente à fundamentação do voto.
   - **DataJud (CNJ)** — consulta processual oficial por número CNJ via API
     Pública (não cobre o STF).
+- **Triagem/classificação** — classifica o processo por matéria, assunto,
+  competência, urgência, prioridade legal (idoso, réu preso etc.) e aponta
+  pendências.
 - **Exportação em `.docx`** — baixa a minuta gerada como documento Word
   formatado (títulos de seção, negrito e listas preservados).
 - Marcadores entre colchetes para lacunas que dependem dos autos ou de
@@ -84,6 +89,8 @@ usando a API da Claude (Anthropic).
 - `POST /api/minutar` — gera a minuta (resposta em streaming `text/plain`).
 - `POST /api/jurisprudencia` — pesquisa julgados em fontes oficiais (streaming).
 - `POST /api/datajud` — consulta processual à API Pública do DataJud (CNJ).
+- `POST /api/extrair-pdf` — extrai os dados do caso a partir do PDF dos autos.
+- `POST /api/triagem` — classifica/tria um processo a partir de sua descrição.
 - `POST /api/exportar-docx` — exporta a minuta como documento Word (.docx).
 - `GET /docs` — documentação interativa (Swagger).
 
@@ -100,6 +107,8 @@ app/
 ├── config.py          # configurações (.env)
 ├── claude_client.py   # integração com a API da Claude (geração das minutas)
 ├── jurisprudencia.py  # busca em fontes oficiais + consulta ao DataJud (CNJ)
+├── pdf_autos.py       # extração de dados do caso a partir do PDF dos autos
+├── triagem.py         # triagem/classificação de processos
 ├── docx_export.py     # exportação da minuta para .docx
 ├── prompts.py         # prompt de sistema + montagem do prompt do caso
 ├── schemas.py         # modelos de entrada
@@ -108,5 +117,5 @@ app/
 
 ## Próximos passos possíveis
 
-- Resumo automático de peças (upload de PDF dos autos).
-- Triagem/classificação de processos por matéria e urgência.
+- Exportação do relatório de triagem e geração em lote.
+- Histórico/persistência das minutas e casos.

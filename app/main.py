@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, File, Response, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 
 from app import __version__
@@ -10,12 +10,15 @@ from app.claude_client import gerar_minuta_stream
 from app.config import settings
 from app.docx_export import montar_docx
 from app.jurisprudencia import consultar_datajud, pesquisar_julgados_stream
+from app.pdf_autos import extrair_dados_pdf
 from app.schemas import (
     DataJudRequest,
     ExportarDocxRequest,
     JurisprudenciaRequest,
     MinutaRequest,
+    TriagemRequest,
 )
+from app.triagem import classificar_processo
 
 DOCX_MEDIA_TYPE = (
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -105,6 +108,25 @@ def jurisprudencia(req: JurisprudenciaRequest) -> StreamingResponse:
 def datajud(req: DataJudRequest) -> dict:
     """Consulta processual à API Pública do DataJud (CNJ)."""
     return consultar_datajud(req.numero_processo, req.tribunal)
+
+
+@app.post("/api/extrair-pdf")
+async def extrair_pdf(arquivo: UploadFile = File(...)) -> dict:
+    """Extrai os dados do caso a partir do PDF dos autos."""
+    if not settings.anthropic_api_key:
+        return {"erro": "ANTHROPIC_API_KEY não configurada."}
+    dados = await arquivo.read()
+    if not dados:
+        return {"erro": "Arquivo vazio."}
+    return extrair_dados_pdf(dados)
+
+
+@app.post("/api/triagem")
+def triagem(req: TriagemRequest) -> dict:
+    """Classifica e tria um processo a partir de sua descrição."""
+    if not settings.anthropic_api_key:
+        return {"erro": "ANTHROPIC_API_KEY não configurada."}
+    return classificar_processo(req.texto)
 
 
 @app.post("/api/exportar-docx")

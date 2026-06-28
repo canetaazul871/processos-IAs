@@ -103,6 +103,16 @@
       <h2>Dados do caso</h2>
       <form id="form">
         <fieldset>
+          <legend>Importar autos (PDF)</legend>
+          <div class="chips" style="gap:10px;">
+            <input type="file" id="pdf_autos" accept="application/pdf" style="width:auto;" />
+            <button type="button" id="btn_pdf" style="margin-top:0;width:auto;padding:7px 14px;font-size:.82rem;background:#efe9df;color:var(--ink);">Extrair dos autos</button>
+            <span class="status" id="status_pdf"></span>
+          </div>
+          <p class="status" style="margin:6px 0 0;">Envie o PDF das peças; o assistente extrai e preenche os campos abaixo (revise antes de gerar).</p>
+        </fieldset>
+
+        <fieldset>
           <legend>Entregáveis a gerar</legend>
           <div class="chips">
             <label><input type="checkbox" class="entregavel" value="firac" checked /> Análise FIRAC</label>
@@ -214,6 +224,17 @@
     </section>
   </div>
 
+  <div class="wrap" style="grid-template-columns:1fr;margin-top:0;">
+    <section class="panel">
+      <h2>Triagem / classificação do processo</h2>
+      <p class="status">Classifica matéria, assunto, competência, urgência, prioridade legal e pendências a partir da descrição do processo.</p>
+      <label for="texto_triagem">Descrição ou relatório do processo</label>
+      <textarea id="texto_triagem" placeholder="Cole aqui o relatório ou um resumo do processo a classificar."></textarea>
+      <button type="button" id="btn_triagem" style="width:auto;padding:11px 20px;">Classificar processo</button>
+      <div id="saida_triagem" style="margin-top:14px;"></div>
+    </section>
+  </div>
+
   <script>
     const form = document.getElementById("form");
     const btn = document.getElementById("btn");
@@ -318,6 +339,78 @@
       saida.textContent = "A minuta aparecerá aqui…";
       status.textContent = "";
     });
+
+    // --- Extração dos autos (upload de PDF) ---
+    const btnPdf = document.getElementById("btn_pdf");
+    const statusPdf = document.getElementById("status_pdf");
+    btnPdf.addEventListener("click", async () => {
+      const input = document.getElementById("pdf_autos");
+      if (!input.files || !input.files[0]) { alert("Selecione o PDF dos autos."); return; }
+      btnPdf.disabled = true; const orig = btnPdf.textContent;
+      btnPdf.textContent = "Extraindo…"; statusPdf.textContent = "lendo o PDF…";
+      try {
+        const fd = new FormData();
+        fd.append("arquivo", input.files[0]);
+        const resp = await fetch("/api/extrair-pdf", { method: "POST", body: fd });
+        const data = await resp.json();
+        if (data.erro) { statusPdf.textContent = "erro: " + data.erro; return; }
+        let preenchidos = 0;
+        campos.forEach(c => {
+          if (data[c] !== undefined && data[c] !== null && String(data[c]).trim() !== "") {
+            const el = document.getElementById(c);
+            if (el) { el.value = data[c]; preenchidos++; }
+          }
+        });
+        statusPdf.textContent = `campos preenchidos: ${preenchidos} (revise antes de gerar)`;
+      } catch (err) {
+        statusPdf.textContent = "falha: " + err.message;
+      } finally {
+        btnPdf.disabled = false; btnPdf.textContent = orig;
+      }
+    });
+
+    // --- Triagem / classificação ---
+    const btnTri = document.getElementById("btn_triagem");
+    const saidaTri = document.getElementById("saida_triagem");
+    btnTri.addEventListener("click", async () => {
+      const texto = document.getElementById("texto_triagem").value;
+      if (!texto.trim()) { alert("Informe a descrição do processo."); return; }
+      btnTri.disabled = true; btnTri.textContent = "Classificando…";
+      saidaTri.innerHTML = "<span class='status'>analisando…</span>";
+      try {
+        const resp = await fetch("/api/triagem", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ texto }),
+        });
+        const d = await resp.json();
+        if (d.erro) { saidaTri.innerHTML = "<span class='status'>erro: " + d.erro + "</span>"; return; }
+        saidaTri.innerHTML = renderTriagem(d);
+      } catch (err) {
+        saidaTri.innerHTML = "<span class='status'>falha: " + err.message + "</span>";
+      } finally {
+        btnTri.disabled = false; btnTri.textContent = "Classificar processo";
+      }
+    });
+
+    function esc(s) { const d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+    function lista(arr) {
+      if (!arr || !arr.length) return "<em>—</em>";
+      return "<ul style='margin:4px 0 0;padding-left:18px;'>" + arr.map(x => "<li>" + esc(x) + "</li>").join("") + "</ul>";
+    }
+    function renderTriagem(d) {
+      const cores = { alta: "#b91c1c", "média": "#b45309", baixa: "#15803d" };
+      const cor = cores[d.urgencia] || "var(--ink)";
+      const linha = (rot, val) => `<tr><td style='padding:6px 10px;color:var(--muted);font-family:system-ui;font-size:.82rem;vertical-align:top;white-space:nowrap;'>${rot}</td><td style='padding:6px 10px;'>${val}</td></tr>`;
+      return "<table style='width:100%;border-collapse:collapse;background:#fbfaf7;border:1px solid var(--border);border-radius:8px;'>"
+        + linha("Resumo", esc(d.resumo))
+        + linha("Matéria", esc(d.materia))
+        + linha("Assunto", esc(d.assunto))
+        + linha("Competência", esc(d.competencia))
+        + linha("Urgência", `<strong style='color:${cor};text-transform:uppercase;'>${esc(d.urgencia)}</strong> — ${esc(d.urgencia_justificativa)}`)
+        + linha("Prioridade legal", lista(d.prioridade_legal))
+        + linha("Pendências", lista(d.pendencias))
+        + "</table>";
+    }
 
     // --- Pesquisa de jurisprudência (busca web em fontes oficiais) ---
     const btnJuris = document.getElementById("btn_juris");
