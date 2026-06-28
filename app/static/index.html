@@ -162,6 +162,7 @@
     <section class="panel">
       <div class="toolbar">
         <h2 style="flex:1; margin:0;">Minuta gerada</h2>
+        <button type="button" id="docx">Exportar .docx</button>
         <button type="button" id="copiar">Copiar</button>
         <button type="button" id="limpar">Limpar</button>
         <span class="status" id="status"></span>
@@ -279,6 +280,39 @@
     document.getElementById("copiar").addEventListener("click", () => {
       navigator.clipboard.writeText(saida.textContent);
       status.textContent = "copiado";
+    });
+
+    const placeholderMinuta = "A minuta aparecerá aqui…";
+    document.getElementById("docx").addEventListener("click", async () => {
+      const texto = saida.textContent;
+      if (!texto.trim() || texto.trim() === placeholderMinuta) {
+        alert("Gere a minuta antes de exportar.");
+        return;
+      }
+      status.textContent = "gerando .docx…";
+      try {
+        const resp = await fetch("/api/exportar-docx", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            texto,
+            numero_processo: document.getElementById("numero_processo").value,
+            tipo_recurso: document.getElementById("tipo_recurso").value,
+          }),
+        });
+        if (!resp.ok) { status.textContent = "erro ao exportar"; return; }
+        const blob = await resp.blob();
+        const disp = resp.headers.get("Content-Disposition") || "";
+        const m = disp.match(/filename="([^"]+)"/);
+        const nome = m ? m[1] : "minuta.docx";
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = nome; a.click();
+        URL.revokeObjectURL(url);
+        status.textContent = "arquivo baixado";
+      } catch (err) {
+        status.textContent = "erro: " + err.message;
+      }
     });
     document.getElementById("limpar").addEventListener("click", () => {
       saida.textContent = "A minuta aparecerá aqui…";

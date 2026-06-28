@@ -2,14 +2,24 @@
 
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.responses import FileResponse, StreamingResponse
 
 from app import __version__
 from app.claude_client import gerar_minuta_stream
 from app.config import settings
+from app.docx_export import montar_docx
 from app.jurisprudencia import consultar_datajud, pesquisar_julgados_stream
-from app.schemas import DataJudRequest, JurisprudenciaRequest, MinutaRequest
+from app.schemas import (
+    DataJudRequest,
+    ExportarDocxRequest,
+    JurisprudenciaRequest,
+    MinutaRequest,
+)
+
+DOCX_MEDIA_TYPE = (
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+)
 
 app = FastAPI(
     title="Assistente de Desembargador",
@@ -95,3 +105,18 @@ def jurisprudencia(req: JurisprudenciaRequest) -> StreamingResponse:
 def datajud(req: DataJudRequest) -> dict:
     """Consulta processual à API Pública do DataJud (CNJ)."""
     return consultar_datajud(req.numero_processo, req.tribunal)
+
+
+@app.post("/api/exportar-docx")
+def exportar_docx(req: ExportarDocxRequest) -> Response:
+    """Converte a minuta em documento Word (.docx) para download."""
+    if not req.texto.strip():
+        return Response(content="Texto vazio.", status_code=400)
+    conteudo = montar_docx(req.texto, titulo=req.titulo())
+    return Response(
+        content=conteudo,
+        media_type=DOCX_MEDIA_TYPE,
+        headers={
+            "Content-Disposition": f'attachment; filename="{req.nome_arquivo()}"'
+        },
+    )

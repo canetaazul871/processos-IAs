@@ -1,5 +1,7 @@
 """Modelos de entrada/saída da API."""
 
+import re
+
 from pydantic import BaseModel, Field
 
 # Entregáveis que o assistente pode produzir.
@@ -81,3 +83,22 @@ class DataJudRequest(BaseModel):
 
     numero_processo: str = Field(..., description="Número CNJ (20 dígitos).")
     tribunal: str = Field(..., description="Alias do tribunal, ex.: tjsp, stj.")
+
+
+class ExportarDocxRequest(BaseModel):
+    """Exportação da minuta para documento Word (.docx)."""
+
+    texto: str = Field(..., description="Texto da minuta a exportar.")
+    numero_processo: str = Field(default="", description="Número do processo.")
+    tipo_recurso: str = Field(default="", description="Tipo de recurso/classe.")
+
+    def titulo(self) -> str:
+        """Título do documento, a partir dos metadados disponíveis."""
+        partes = [p.strip() for p in (self.tipo_recurso, self.numero_processo) if p.strip()]
+        return " — ".join(partes) if partes else "Minuta de voto"
+
+    def nome_arquivo(self) -> str:
+        """Nome de arquivo seguro para o .docx."""
+        base = self.numero_processo.strip() or "minuta"
+        seguro = re.sub(r"[^0-9A-Za-z._-]+", "_", base).strip("_") or "minuta"
+        return f"minuta_{seguro}.docx"

@@ -26,6 +26,8 @@ usando a API da Claude (Anthropic).
     incorporada automaticamente à fundamentação do voto.
   - **DataJud (CNJ)** — consulta processual oficial por número CNJ via API
     Pública (não cobre o STF).
+- **Exportação em `.docx`** — baixa a minuta gerada como documento Word
+  formatado (títulos de seção, negrito e listas preservados).
 - Marcadores entre colchetes para lacunas que dependem dos autos ou de
   precedentes a serem conferidos (o modelo é instruído a **não inventar**
   citações, súmulas ou números de processos).
@@ -82,6 +84,7 @@ usando a API da Claude (Anthropic).
 - `POST /api/minutar` — gera a minuta (resposta em streaming `text/plain`).
 - `POST /api/jurisprudencia` — pesquisa julgados em fontes oficiais (streaming).
 - `POST /api/datajud` — consulta processual à API Pública do DataJud (CNJ).
+- `POST /api/exportar-docx` — exporta a minuta como documento Word (.docx).
 - `GET /docs` — documentação interativa (Swagger).
 
 > **Rede:** a busca em fontes oficiais usa a ferramenta de busca server-side da
@@ -97,6 +100,7 @@ app/
 ├── config.py          # configurações (.env)
 ├── claude_client.py   # integração com a API da Claude (geração das minutas)
 ├── jurisprudencia.py  # busca em fontes oficiais + consulta ao DataJud (CNJ)
+├── docx_export.py     # exportação da minuta para .docx
 ├── prompts.py         # prompt de sistema + montagem do prompt do caso
 ├── schemas.py         # modelos de entrada
 └── static/index.html  # interface web
@@ -106,4 +110,3 @@ app/
 
 - Resumo automático de peças (upload de PDF dos autos).
 - Triagem/classificação de processos por matéria e urgência.
-- Exportação da minuta em `.docx`.
